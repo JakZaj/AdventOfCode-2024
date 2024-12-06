@@ -17,10 +17,8 @@ public class Main {
 
     public static void main(String[] args) {
         String line = "";
-
         Point guardPosition = null;
         Map<Point, Boolean> obstructions = new HashMap<>();
-
         int ySize = 0, xSize = 0;
 
         try {
@@ -50,26 +48,25 @@ public class Main {
             System.out.println("File not found.");
             e.printStackTrace();
         }
+        Tuple2<Integer, ArrayList<Point>> tuple2 = getVisitedPosition(new Point(guardPosition.x, guardPosition.y), obstructions, new Point(xSize, ySize));
 
-        System.out.println(getVisitedPosition(new Point(guardPosition.x, guardPosition.y), obstructions, new Point(xSize, ySize)));
-        System.out.println(getVisitedPositionPartTwo(new Point(guardPosition.x, guardPosition.y), obstructions, new Point(xSize, ySize)));
+        System.out.println(tuple2.getFirst());
+        System.out.println(getVisitedPositionPartTwo(new Point(guardPosition.x, guardPosition.y), obstructions, new Point(xSize, ySize), tuple2.getSecond()));
     }
 
-    public static int getVisitedPosition(Point guardPosition, Map<Point, Boolean> obstructions, Point areaSize){
+    public static Tuple2<Integer, ArrayList<Point>> getVisitedPosition(Point guardPosition, Map<Point, Boolean> obstructions, Point areaSize){
         Map<Point, Boolean> visitedPosition = new HashMap<>();
-        enum MoveDirection {
-            TOP,
-            RIGHT,
-            BOTTOM,
-            LEFT
-        }
         MoveDirection moveDirection = MoveDirection.TOP;
+        ArrayList<Point> visitedArray = new ArrayList<>();
 
         while (guardPosition.x < areaSize.x && guardPosition.x >= 0 && guardPosition.y < areaSize.y && guardPosition.y >= 0){
             switch (moveDirection){
                 case TOP :
                     if (obstructions.get(new Point(guardPosition.x, guardPosition.y - 1)) == null){
                         visitedPosition.putIfAbsent(new Point(guardPosition.x, guardPosition.y), true);
+                        if (!visitedArray.contains(new Point(guardPosition.x, guardPosition.y)))
+                            visitedArray.addLast(new Point(guardPosition.x, guardPosition.y));
+
                         guardPosition.y--;
                     } else {
                         moveDirection = MoveDirection.RIGHT;
@@ -78,6 +75,9 @@ public class Main {
                 case RIGHT:
                     if (obstructions.get(new Point(guardPosition.x + 1, guardPosition.y)) == null){
                         visitedPosition.putIfAbsent(new Point(guardPosition.x, guardPosition.y), true);
+                        if (!visitedArray.contains(new Point(guardPosition.x, guardPosition.y)))
+                            visitedArray.addLast(new Point(guardPosition.x, guardPosition.y));
+
                         guardPosition.x++;
                     } else {
                         moveDirection = MoveDirection.BOTTOM;
@@ -86,6 +86,9 @@ public class Main {
                 case BOTTOM:
                     if (obstructions.get(new Point(guardPosition.x, guardPosition.y + 1)) == null){
                         visitedPosition.putIfAbsent(new Point(guardPosition.x, guardPosition.y), true);
+                        if (!visitedArray.contains(new Point(guardPosition.x, guardPosition.y)))
+                            visitedArray.addLast(new Point(guardPosition.x, guardPosition.y));
+
                         guardPosition.y++;
                     } else {
                         moveDirection = MoveDirection.LEFT;
@@ -94,43 +97,34 @@ public class Main {
                 case LEFT:
                     if (obstructions.get(new Point(guardPosition.x - 1, guardPosition.y)) == null){
                         visitedPosition.putIfAbsent(new Point(guardPosition.x, guardPosition.y), true);
+                        if (!visitedArray.contains(new Point(guardPosition.x, guardPosition.y)))
+                            visitedArray.addLast(new Point(guardPosition.x, guardPosition.y));
+
                         guardPosition.x--;
                     } else {
                         moveDirection = MoveDirection.TOP;
                     }
                     break;
-
             }
         }
-
-
-        return visitedPosition.size();
+        return new Tuple2<>(visitedPosition.size(), visitedArray);
     }
 
-    public static int getVisitedPositionPartTwo(Point guardPosition, Map<Point, Boolean> obstructions, Point areaSize){
+    public static int getVisitedPositionPartTwo(Point guardPosition, Map<Point, Boolean> obstructions, Point areaSize, ArrayList<Point> visitedPosition){
         int diffrentPositionsCount = 0;
+        visitedPosition.removeFirst();
 
-        for (int y = 0; y < areaSize.y; y++){
-            for (int x = 0; x < areaSize.x; x++){
-                if (obstructions.get(new Point(x, y)) != null){
+        for (Point point : visitedPosition){
+            if (obstructions.get(point) != null)
                     continue;
-                }
-                if (guardPosition.x == x && guardPosition.y == y){
-                    continue;
-                }
 
-                obstructions.put(new Point(x, y), true);
+            obstructions.put(point, true);
+            if (isStuckInLoop(new Point(guardPosition.x, guardPosition.y), MoveDirection.TOP, obstructions, areaSize))
+                diffrentPositionsCount++;
 
-                if (isStuckInLoop(new Point(guardPosition.x, guardPosition.y), MoveDirection.TOP, obstructions, areaSize))
-                    diffrentPositionsCount++;
-
-                obstructions.remove(new Point(x, y));
-
-            }
+            obstructions.remove(point);
         }
-
         return diffrentPositionsCount;
-
     }
 
     public static boolean isStuckInLoop(Point guardPosition, MoveDirection moveDirection, Map<Point, Boolean> obstructions, Point areaSize){
@@ -202,28 +196,27 @@ public class Main {
                         moveDirection = MoveDirection.TOP;
                     }
                     break;
-
             }
         }
-
         return false;
     }
 
-    public static void print(Point guardPosition, Map<Point, Boolean> obstructions, Point areaSize){
-        for (int y = 0; y < areaSize.y; y++){
-            for (int x = 0; x < areaSize.x; x++){
-                if (obstructions.get(new Point(x, y)) != null){
-                    System.out.print("#");
-                    continue;
-                }
-                if (guardPosition.x == x && guardPosition.y == y){
-                    System.out.print("^");
-                    continue;
-                }
-                System.out.print(".");
+    public static class Tuple2<K, V> {
 
-            }
-            System.out.println("");
+        private K first;
+        private V second;
+
+        public Tuple2(K first, V second){
+            this.first = first;
+            this.second = second;
+        }
+
+        public K getFirst() {
+            return first;
+        }
+
+        public V getSecond() {
+            return second;
         }
     }
 }
